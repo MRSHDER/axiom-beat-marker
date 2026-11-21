@@ -51,3 +51,7 @@ export function beatLight(time,bpm,downbeat){
   if(!Number.isFinite(time)||!Number.isFinite(bpm)||bpm<20||bpm>400||!Number.isFinite(downbeat)||downbeat<0||time<downbeat)return -1;
   return Math.floor((time-downbeat)*bpm/60+1e-9)%4;
 }
+
+export function isHitKey(code,key,selection='F'){
+  return ['F','J','D','K'].includes(selection)&&(code&&code!=='Unidentified'?code==='Key'+selection:String(key).toUpperCase()===selection);
+}

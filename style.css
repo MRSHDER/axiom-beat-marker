@@ -13,3 +13,16 @@
 .beat-lights .lit{color:#101114;background:#dcf75d;border-color:#dcf75d;box-shadow:0 0 12px #dcf75d45}
 .beat-actions{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap}
 .beat-cue .note{margin-bottom:0}
+
+/* Physical pad affordance, without animating the timeline or the music. */
+.rhythm-pad{user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+button.mark:not(:disabled){box-shadow:0 4px 0 #616c24}
+button.rhythm-pad:not(:disabled):active{transform:translateY(2px) scale(.982)}
+button.mark:not(:disabled):active{box-shadow:0 1px 0 #616c24}
+.pad-options{display:flex;align-items:baseline;justify-content:space-between;gap:9px 13px;flex-wrap:wrap;margin-top:4px}
+.hit-option{display:inline-flex;align-items:center;gap:5px;min-height:32px;font-size:12px;color:var(--muted);white-space:nowrap;cursor:pointer}
+.hit-option input{accent-color:var(--lime);inline-size:16px;block-size:16px;margin:0}
+@media(prefers-reduced-motion:reduce){button.rhythm-pad:not(:disabled):active{transform:none}}
+
+.pad-settings{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.hit-option select{min-height:32px;min-width:42px;border:1px solid #494d57;border-radius:6px;background:#101114;color:var(--ink);font:14px ui-monospace,monospace;padding:3px}

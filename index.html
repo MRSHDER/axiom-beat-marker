@@ -32,18 +32,18 @@
 <span>1</span><span>2</span><span>3</span><span>4</span>
 </div>
 <div class="beat-actions">
-<button id="tap-sync" type="button" disabled>跟着音乐点四下</button>
+<button id="tap-sync" class="rhythm-pad" type="button" disabled>跟着音乐点四下</button>
 <button id="tap-cancel" type="button" hidden>取消校准</button>
 </div>
 <p class="note" id="beat-note">先播放，听到你想当作第 1 拍的地方，跟着音乐点四下。灯按你点出的速度走，不是自动识别。</p>
 </section>
-<div class="transport"><button id="play" class="play" disabled aria-label="播放"><span id="play-symbol" aria-hidden="true">▶</span><span id="play-label">播放</span></button><button id="back" disabled>− 2 秒</button><button id="forward" disabled>＋ 2 秒</button><button id="undo" disabled title="Ctrl 或 ⌘ + Z">撤销</button></div>
-<button id="mark" class="mark" disabled><span>＋　记一个拍点</span><span class="hint">SPACE</span></button>
-<p class="note">空格：播放时打点，暂停时开始播放。<kbd>M</kbd> 也可打点，触屏直接点按钮。</p>
+<div class="transport"><button id="play" class="play rhythm-pad" disabled aria-label="播放"><span id="play-symbol" aria-hidden="true">▶</span><span id="play-label">播放</span></button><button id="back" disabled>− 2 秒</button><button id="forward" disabled>＋ 2 秒</button><button id="undo" disabled title="Ctrl 或 ⌘ + Z">撤销</button></div>
+<button id="mark" class="mark rhythm-pad" aria-keyshortcuts="F" disabled><span>＋　记一个拍点</span><span class="hint" id="mark-key-badge">F</span></button>
+<div class="pad-options"><p class="note">用 <kbd id="mark-key-inline">F</kbd> 打点或跟拍，触屏直接点按钮。</p><div class="pad-settings"><label class="hit-option">按键 <select id="hit-key"><option selected>F</option><option>J</option><option>D</option><option>K</option></select></label><label class="hit-option"><input id="hit-sound" type="checkbox"> 敲击音</label></div></div>
 </section>
 <aside class="panel log" aria-label="拍点记录">
 <div class="bar"><div><p class="caption"><span>02</span>　手打记录</p><h2>我的拍点</h2></div><span class="count" id="count">00</span></div>
-<div id="markerlist" class="markers"><div class="empty"><span>✳</span><p>还没有拍点</p><small>播放后，按空格或点击「记一个拍点」。</small></div></div>
+<div id="markerlist" class="markers"><div class="empty"><span>✳</span><p>还没有拍点</p><small>按 F 键或点击「记一个拍点」。</small></div></div>
 <div class="exports"><button id="copy" disabled>复制时间</button><button id="csv" disabled>CSV ↓</button><button id="json" disabled>JSON ↓</button><button id="clear" class="quiet" disabled>清空</button></div>
 </aside>
 </div>

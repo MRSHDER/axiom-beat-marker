@@ -1,4 +1,4 @@
-import {timecode,nearestBeat,reduceMarks,exportMarks,waveformBins,fitFourTaps,beatLight} from './core.mjs';
+import {timecode,nearestBeat,reduceMarks,exportMarks,waveformBins,fitFourTaps,beatLight,isHitKey} from './core.mjs';
 const $=id=>document.getElementById(id);
 const audio=$('audio'), file=$('file'), wave=$('wave'), ctx=wave.getContext('2d');
 const controls=['play','back','forward','mark','set-downbeat','seek','tap-sync'];
@@ -12,6 +12,50 @@ function gridSettings(){
   return {bpm:Number($('bpm').value),downbeat:Number($('downbeat').value), subdivision:Number($('subdivision').value)};
 }
 function speak(msg){$('feedback').textContent=msg;}
+const reducedMotion=window.matchMedia?.('(prefers-reduced-motion: reduce)');
+const effects=new WeakMap();
+let hitAudio;
+function pulsePad(el,press=true){
+  if(!el?.animate)return;
+  effects.get(el)?.cancel();
+  const motion=press&&!reducedMotion?.matches;
+  const keyframes=motion?[
+    {transform:'translateY(2px) scale(.979)',boxShadow:'inset 0 0 0 2px #e8ff825e, 0 1px 0 #465025',offset:0},
+    {transform:'translateY(-1px) scale(1.005)',boxShadow:'inset 0 0 0 1px #edff9650, 0 0 0 4px #d5ef3c31',offset:.31},
+    {transform:'translateY(0) scale(1)',boxShadow:'inset 0 0 0 0 #edff9600, 0 4px 0 #46502500',offset:1}
+  ]:[{boxShadow:'inset 0 0 0 2px #f2ff99b0'},{boxShadow:'inset 0 0 0 2px #f2ff9900'}];
+  try{effects.set(el,el.animate(keyframes,{duration:motion?185:115,easing:'cubic-bezier(.2,.7,.3,1)'}));}catch{}
+}
+function prepareHitSound(){
+  if(!$('hit-sound').checked)return;
+  try{
+    const AC=window.AudioContext||window.webkitAudioContext;
+    if(!AC){$('hit-sound').checked=false;speak('当前浏览器不支持敲击音。');return;}
+    if(!hitAudio||hitAudio.state==='closed')hitAudio=new AC();
+    if(hitAudio.state!=='running')hitAudio.resume().catch(()=>{});
+  }catch{}
+}
+$('hit-sound').addEventListener('change',prepareHitSound);
+function hit(id,light=-1){
+  pulsePad($(id));
+  if(light>=0)pulsePad(lights[light],false);
+  if(!$('hit-sound').checked)return;
+  try{
+    prepareHitSound();
+    if(hitAudio?.state!=='running')return;
+    const t=hitAudio.currentTime;
+    const tone=hitAudio.createOscillator(), gain=hitAudio.createGain();
+    tone.type='sine';
+    tone.frequency.setValueAtTime(light===0?940:810,t);
+    tone.frequency.exponentialRampToValueAtTime(330,t+.026);
+    gain.gain.setValueAtTime(.0001,t);
+    gain.gain.exponentialRampToValueAtTime(.045,t+.003);
+    gain.gain.exponentialRampToValueAtTime(.0001,t+.034);
+    tone.connect(gain);gain.connect(hitAudio.destination);
+    tone.onended=()=>{tone.disconnect();gain.disconnect();};
+    tone.start(t);tone.stop(t+.037);
+  }catch{} // A feedback-only sound must never block recording or calibration.
+}
 function paintWave(){
   const w=wave.clientWidth,h=wave.clientHeight;
   if(!w||!h)return;
@@ -52,13 +96,19 @@ function paintLights(){
   shownLight=i;
   lights.forEach((el,n)=>el.classList.toggle('lit',n===i));
 }
+const hitKey=()=>$('hit-key').value;
 function syncUI(){
+  const key=hitKey();
+  $('mark-key-badge').textContent=key;
+  $('mark-key-inline').textContent=key;
+  $('mark').setAttribute('aria-keyshortcuts',taps?'':key);
+  $('tap-sync').setAttribute('aria-keyshortcuts',taps?key:'');
   const {bpm,downbeat}=gridSettings();
   const label=taps?'校准中 · '+taps.length+'/4':calibrated?'已按手点校准':nearestBeat(0,bpm,downbeat)?'按手动网格':'未同步';
   if($('beat-status').textContent!==label)$('beat-status').textContent=label;
   $('tap-sync').textContent=taps?'跟着拍子点 · '+taps.length+'/4':calibrated?'重新跟拍校准':'跟着音乐点四下';
   $('tap-cancel').hidden=!taps;
-  $('beat-note').textContent=taps?'点击上方按钮或按空格，连续点四拍。校准点不进入右侧记录。':calibrated?'灯跟着你设定的节奏循环。歌曲变速时，可以重新点四拍。':'先播放，再跟着音乐点四下。第一下就是第 1 拍；灯不是自动识别。';
+  $('beat-note').textContent=taps?'点击上方按钮，或按 '+key+' 键连续点四拍。校准点不进入右侧记录。':calibrated?'灯跟着你设定的节奏循环。歌曲变速时，可以重新点四拍。':'先播放，再跟着音乐点四下。第一下就是第 1 拍；灯不是自动识别。';
   paintLights();
 }
 function cancelTap(message){
@@ -71,8 +121,8 @@ function tapPoint(){
   const t=audio.currentTime;
   const last=taps.at(-1);
   if(last!==undefined&&t-last<.15){if(t<last)cancelTap('播放位置变了，请重新点四下。');return;}
-  if(last!==undefined&&t-last>3){taps=[t];syncUI();speak('间隔太长，刚才那一下作为新的第 1 拍。');return;}
-  taps.push(t);
+  if(last!==undefined&&t-last>3){taps=[t];hit('tap-sync',0);syncUI();speak('间隔太长，刚才那一下作为新的第 1 拍。');return;}
+  taps.push(t);hit('tap-sync',taps.length-1);
   if(taps.length<4){syncUI();return;}
   const fit=fitFourTaps(taps);
   taps=null;
@@ -124,7 +174,7 @@ function list(scrollId){
   log.replaceChildren();
   if(!model.items.length){
     const empty=document.createElement('div');empty.className='empty';
-    empty.innerHTML='<span aria-hidden="true">✳</span><p>还没有拍点</p><small>播放后，按空格或点击「记一个拍点」。</small>';log.append(empty);
+    empty.innerHTML='<span aria-hidden="true">✳</span><p>还没有拍点</p><small>按 '+hitKey()+' 键或点击「记一个拍点」。</small>';log.append(empty);
   }
   for(const [i,{id,time}] of model.items.entries()){
     const row=document.createElement('div');row.className='row';row.id='row-'+id;
@@ -162,8 +212,10 @@ function seek(t){
 }
 function mark(){
   if(!ready())return;
-  update({type:'add',id:++serial,time:audio.currentTime});
-  speak('已记录 '+seconds(audio.currentTime)+' 秒');
+  const instant=audio.currentTime;
+  hit('mark');
+  update({type:'add',id:++serial,time:instant});
+  speak('已记录 '+seconds(instant)+' 秒');
 }
 function undo(){
   if(model.history.length){update({type:'undo'});speak('已撤销上一步。');}
@@ -171,6 +223,7 @@ function undo(){
 async function play(){
   if(!ready())return;
   if(audio.ended)seek(0);
+  pulsePad($('play'));
   try{await audio.play();}catch{ speak('浏览器无法播放这份文件。试试 WAV 或 MP3。'); }
 }
 async function load(f){
@@ -225,7 +278,10 @@ for(const name of ['pause','ended'])audio.addEventListener(name,()=>{
 });
 audio.addEventListener('seeking',()=>cancelTap('播放位置变了，请重新点四下。'));
 audio.addEventListener('seeked',paintTime);
-$('play').addEventListener('click',()=>audio.paused?play():audio.pause());
+$('play').addEventListener('click',()=>{
+  if(audio.paused)play();
+  else{pulsePad($('play'));audio.pause();}
+});
 $('back').addEventListener('click',()=>seek(audio.currentTime-2));
 $('forward').addEventListener('click',()=>seek(audio.currentTime+2));
 $('seek').addEventListener('input',e=>seek(Number(e.target.value)));
@@ -253,17 +309,14 @@ $('set-downbeat').addEventListener('click',()=>{
 document.addEventListener('keydown',e=>{
   if(e.defaultPrevented||e.repeat||e.isComposing||e.altKey||e.target.closest('input,textarea,select,[contenteditable],summary'))return;
   if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){if(model.history.length){e.preventDefault();undo();}return;}
-  if(e.ctrlKey||e.metaKey||!ready())return;
-  if(taps&&(e.code==='Space'||e.code==='KeyM')){
-    if(e.code==='Space'&&e.target===$('tap-cancel'))return;
-    e.preventDefault();tapPoint();return;
-  }
-  if(e.code==='Space'&&e.target===$('tap-sync'))return;
-  if(e.code==='Space'){
-    if(e.target.closest('button, [role=button]')&&audio.paused)return;
-    e.preventDefault();audio.paused?play():mark();
-  }
-  if(e.code==='KeyM'){e.preventDefault();mark();}
+  if(e.ctrlKey||e.metaKey||e.shiftKey||!ready())return;
+  if(!isHitKey(e.code,e.key,hitKey()))return;
+  e.preventDefault();
+  taps?tapPoint():mark();
+});
+$('hit-key').addEventListener('change',()=>{
+  syncUI();if(!model.items.length)list();
+  if(ready())(taps?$('tap-sync'):$('mark')).focus({preventScroll:true});
 });
 const exportSource=()=>source?{...source,durationSeconds:Number(seconds(audio.duration))}:{};
 const data=()=>exportMarks(model.items,gridSettings(),exportSource());
