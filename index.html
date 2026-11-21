@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="AXIOM 节拍打点器：只在本机播放音频，记录手打拍点。">
+<meta name="theme-color" content="#101114">
+<title>节拍打点器 · AXIOM</title>
+<link rel="stylesheet" href="./style.css">
+<script type="module" src="./app.mjs"></script>
+</head>
+<body>
+<header class="top wrap">
+<div class="brand" aria-label="AXIOM">AXI<span>O</span>M <b>／</b> TOOLS</div>
+<div class="privacy"><i></i> 本地处理 · 不上传音频</div>
+</header>
+<main class="wrap">
+<div class="intro">
+<div><p class="eyebrow"><span>01</span> ＋ 节奏工作台</p><h1>节拍打点器<span>.</span></h1><p class="deck">跟着音乐记下原音拍点，再把时间交给剪辑。</p></div>
+<label for="file" class="file" id="drop"><span class="file-icon">↑</span><span><strong>选择本地音频</strong><small>可拖入 WAV、MP3、M4A 或 MP4</small></span></label>
+<input type="file" id="file" accept="audio/*,video/mp4,.m4a,.mp3,.wav,.aac,.flac,.ogg" hidden>
+</div>
+<div class="layout">
+<section class="panel studio" aria-label="音频工作台">
+<div class="bar"><div><p class="caption"><span>01</span>　音频轨</p><strong class="track-name" id="track">尚未导入</strong></div><div class="clock"><span id="current">00:00.000</span><small id="duration">/ 00:00.000</small></div></div>
+<div class="wave-wrap"><canvas id="wave" aria-label="音频波形，点击或拖动跳转"></canvas><div class="wave-placeholder" id="wave-message">导入音频后，在这里看波形</div></div>
+<label class="sr" for="seek">播放位置</label><input class="seek" id="seek" type="range" min="0" max="1" step="0.001" value="0" disabled>
+<div class="wave-scale"><span>00:00</span><span id="scale-end">00:00</span></div>
+<section class="beat-cue" aria-labelledby="beat-cue-title">
+<div class="beat-head"><h2 id="beat-cue-title">跟拍提示</h2><span id="beat-status" role="status">未同步</span></div>
+<div class="beat-lights" role="img" aria-label="四个节拍提示灯：一、二、三、四">
+<span>1</span><span>2</span><span>3</span><span>4</span>
+</div>
+<div class="beat-actions">
+<button id="tap-sync" type="button" disabled>跟着音乐点四下</button>
+<button id="tap-cancel" type="button" hidden>取消校准</button>
+</div>
+<p class="note" id="beat-note">先播放，听到你想当作第 1 拍的地方，跟着音乐点四下。灯按你点出的速度走，不是自动识别。</p>
+</section>
+<div class="transport"><button id="play" class="play" disabled aria-label="播放"><span id="play-symbol" aria-hidden="true">▶</span><span id="play-label">播放</span></button><button id="back" disabled>− 2 秒</button><button id="forward" disabled>＋ 2 秒</button><button id="undo" disabled title="Ctrl 或 ⌘ + Z">撤销</button></div>
+<button id="mark" class="mark" disabled><span>＋　记一个拍点</span><span class="hint">SPACE</span></button>
+<p class="note">空格：播放时打点，暂停时开始播放。<kbd>M</kbd> 也可打点，触屏直接点按钮。</p>
+</section>
+<aside class="panel log" aria-label="拍点记录">
+<div class="bar"><div><p class="caption"><span>02</span>　手打记录</p><h2>我的拍点</h2></div><span class="count" id="count">00</span></div>
+<div id="markerlist" class="markers"><div class="empty"><span>✳</span><p>还没有拍点</p><small>播放后，按空格或点击「记一个拍点」。</small></div></div>
+<div class="exports"><button id="copy" disabled>复制时间</button><button id="csv" disabled>CSV ↓</button><button id="json" disabled>JSON ↓</button><button id="clear" class="quiet" disabled>清空</button></div>
+</aside>
+</div>
+<section class="panel compare" aria-labelledby="grid-title"><div><p class="caption"><span>03</span>　可选</p><h2 id="grid-title">节拍网格</h2><p class="note">网格只作对照，记录和默认导出始终保留原音时间，不会自动吸附。</p></div><div class="grid-controls"><label class="switch"><input id="grid" type="checkbox"> 显示网格</label><label>BPM<input id="bpm" type="number" inputmode="decimal" min="20" max="400" step="0.01" value="120"></label><label>首拍（秒）<input id="downbeat" type="number" inputmode="decimal" min="0" step="0.001" value="0"></label><label>网格间距<select id="subdivision"><option value="1">1 拍</option><option value="2">½ 拍</option><option value="4">¼ 拍</option></select></label><button id="set-downbeat" disabled>取当前播放位置</button></div></section>
+<details class="explain"><summary>这些时间怎么交给剪辑？</summary><p>原音从 0 秒开始计时。比如给剪辑师 9.040 秒，如果正片用了从原音 5.410 秒开始的片段，那一拍落在片段开始后的 3.630 秒。再按项目帧率取最近一帧。只把真实原时间交给对方即可，不要把网格猜测写进去。</p></details>
+<p class="feedback" id="feedback" role="status" aria-live="polite"></p>
+</main>
+<footer class="wrap foot"><span>AXIOM 工具室</span><span>SOURCE TIME · MANUAL MARKS · 001</span></footer>
+<audio id="audio" hidden preload="metadata"></audio>
+</body>
+</html>
